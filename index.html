@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Daisy Medic Chatbot (Insecure Standalone)</title>
+  <style>
+    /* --- CSS (Copied from your example) --- */
+    :root {
+      --user-bg: #dcf8c6;
+      --bot-bg: #ffffff;
+      --bg-color: #f0f0f0; /* Light gray background */
+      --input-bg: #ffffff;
+      --border-color: #ccc;
+      --text-color: #111;
+      --button-bg: #007bff; /* Standard blue */
+      --button-text: #ffffff;
+      --header-bg: #0056b3; /* Darker blue for header */
+      --error-color: #dc3545; /* Red for errors */
+      --timestamp-color: #777;
+      --copy-button-bg: rgba(255, 255, 255, 0.8);
+      --copy-button-border: #ddd;
+      --link-color: #0366d6;
+      --code-bg: #f6f8fa;
+      --blockquote-border: #ddd;
+      --blockquote-color: #666;
+      --hr-color: #eee;
+      --table-border: #ddd;
+      --table-header-bg: #f2f2f2;
+      --warning-bg: #fff3cd;
+      --warning-border: #ffeeba;
+      --warning-text: #856404;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      overflow: hidden; /* Prevent body scrolling */
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-size: 16px; /* Base font size */
+    }
+    #security-warning {
+        background-color: var(--warning-bg);
+        color: var(--warning-text);
+        border: 1px solid var(--warning-border);
+        padding: 10px 15px; /* Reduced padding */
+        margin: 10px; /* Margin inside container */
+        border-radius: 4px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 0.9rem; /* Smaller font */
+    }
+    #security-warning strong { color: #dc3545; }
+    #chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh; /* Full viewport height */
+      max-width: 800px; /* Max width for larger screens */
+      margin: 0 auto;   /* Center on larger screens */
+      background-color: var(--bg-color);
+      border-left: 1px solid var(--border-color); /* Subtle border */
+      border-right: 1px solid var(--border-color);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+      position: relative; /* Needed for absolute positioned warning */
+    }
+    #chat-header {
+      background-color: var(--header-bg);
+      color: var(--button-text);
+      padding: 15px;
+      font-weight: bold;
+      text-align: center;
+      flex-shrink: 0; /* Prevent header from shrinking */
+      font-size: 1.2rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      z-index: 10; /* Keep header on top */
+    }
+    #chat-messages {
+      flex-grow: 1; /* Take available vertical space */
+      overflow-y: auto; /* Allow scrolling ONLY for messages */
+      padding: 15px;
+      padding-top: 5px; /* Less padding at top */
+      display: flex;
+      flex-direction: column;
+      gap: 12px; /* Space between messages */
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    }
+    .message-container {
+      position: relative; /* For positioning copy button */
+      max-width: 85%; /* Slightly wider messages allowed */
+      display: flex; /* Use flex for timestamp alignment */
+      flex-direction: column;
+    }
+    .user-container {
+      align-self: flex-end;
+      align-items: flex-end; /* Align timestamp right */
+    }
+    .bot-container {
+      align-self: flex-start;
+      align-items: flex-start; /* Align timestamp left */
+    }
+    .message {
+      padding: 10px 14px;
+      border-radius: 18px;
+      word-wrap: break-word; /* Wrap long words */
+      line-height: 1.5;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      width: fit-content; /* Make bubble fit content */
+      max-width: 100%; /* Ensure it doesn't overflow container */
+    }
+    .user-message {
+      background-color: var(--user-bg);
+      border-bottom-right-radius: 4px; /* Messenger-like tail */
+    }
+    .bot-message {
+      background-color: var(--bot-bg);
+      border-bottom-left-radius: 4px; /* Messenger-like tail */
+    }
+    .message-time {
+      font-size: 0.7rem;
+      color: var(--timestamp-color);
+      margin-top: 4px;
+    }
+    .copy-button {
+      position: absolute;
+      top: 5px;
+      right: -30px; /* Position outside the bubble */
+      background-color: var(--copy-button-bg);
+      border: 1px solid var(--copy-button-border);
+      color: #555;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      opacity: 0; /* Hidden by default */
+      transition: opacity 0.2s ease;
+      z-index: 5;
+    }
+    .bot-container:hover .copy-button {
+      opacity: 1; /* Show on hover */
+    }
+    #chat-input-area {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid var(--border-color);
+      background-color: #f9f9f9;
+      flex-shrink: 0; /* Prevent input area shrinking */
+      align-items: flex-end; /* Align items to bottom (for textarea growth) */
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+    }
+    #user-input {
+      flex-grow: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 12px 15px;
+      font-size: 1rem;
+      line-height: 1.4;
+      resize: none; /* Disable manual resize */
+      max-height: 120px; /* Limit height */
+      min-height: 48px; /* Ensure minimum height matches button */
+      overflow-y: auto; /* Allow scroll within textarea */
+      margin-right: 10px;
+      background-color: var(--input-bg);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s ease;
+    }
+    #user-input:focus {
+      outline: none;
+      border-color: var(--button-bg);
+    }
+    #send-button {
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      border-radius: 50%; /* Make it round */
+      width: 44px;  /* Fixed size */
+      height: 44px; /* Fixed size */
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0; /* Prevent button shrinking */
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    #send-button:hover {
+      background-color: #0056b3; /* Darker blue on hover */
+    }
+    #send-button:active {
+      transform: scale(0.95); /* Click feedback */
+    }
+    #send-button:disabled {
+      background-color: #a0a0a0; /* Grey out when disabled */
+      cursor: not-allowed;
+      transform: none; /* Disable active transform */
+    }
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      background-color: var(--bot-bg); /* Same as bot message */
+      border-radius: 18px;
+      border-bottom-left-radius: 4px; /* Match bot bubble */
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      width: fit-content;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #888;
+      margin: 0 2px; /* Adjusted margin */
+      animation: typingAnimation 1.4s infinite ease-in-out both; /* Use 'both' to keep final state */
+    }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spinner { /* Spinner for send button */
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid var(--button-text);
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin 1s linear infinite;
+    }
+    .error-message {
+      /* Inherited from bot-message for bubble look */
+      background-color: rgba(220, 53, 69, 0.1); /* Error background */
+      border: 1px solid var(--error-color); /* Error border */
+      color: var(--error-color); /* Error text color */
+      padding: 12px;
+      border-radius: 5px;
+      margin: 10px 0; /* Space around error */
+      font-size: 0.9rem;
+    }
+    .error-message svg { /* Style error icon */
+      margin-right: 8px;
+      vertical-align: middle;
+      width: 1.1em;
+      height: 1.1em;
+    }
+    .retry-button { /* Style retry button */
+        margin-top: 10px;
+        padding: 6px 12px;
+        background-color: var(--button-bg);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+    }
+    .retry-button:hover {
+        background-color: #0056b3;
+    }
+    #toast {
+      visibility: hidden; /* Hidden by default */
+      min-width: 200px;
+      margin-left: -100px; /* Center trick */
+      background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black */
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 12px;
+      position: fixed;
+      z-index: 100; /* High z-index */
+      left: 50%;
+      bottom: 30px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s; /* Fade in, stay 2.5s, fade out */
+    }
+    @keyframes fadein {
+      from {bottom: 0; opacity: 0;}
+      to {bottom: 30px; opacity: 1;}
+    }
+    @keyframes fadeout {
+      from {bottom: 30px; opacity: 1;}
+      to {bottom: 0; opacity: 0;}
+    }
+
+    /* --- Markdown styling (Copied from your example) --- */
+    .bot-message h1, .bot-message h2, .bot-message h3, .bot-message h4 { margin-top: 1em; margin-bottom: 0.5em; font-weight: 600; line-height: 1.3; }
+    .bot-message h1 { font-size: 1.4em; } .bot-message h2 { font-size: 1.3em; } .bot-message h3 { font-size: 1.2em; } .bot-message h4 { font-size: 1.1em; }
+    .bot-message p { margin-bottom: 0.8em; } .bot-message p:last-child { margin-bottom: 0; }
+    .bot-message strong { font-weight: bold; } .bot-message em { font-style: italic; }
+    .bot-message ul, .bot-message ol { margin-left: 1.5em; margin-bottom: 1em; padding-left: 1em; }
+    .bot-message li { margin-bottom: 0.4em; }
+    .bot-message a { color: var(--link-color); text-decoration: none; } .bot-message a:hover { text-decoration: underline; }
+    .bot-message code { background-color: var(--code-bg); padding: 0.2em 0.4em; margin: 0 0.1em; border-radius: 3px; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 85%; color: #333; }
+    .bot-message pre { background-color: var(--code-bg); padding: 1em; border-radius: 5px; overflow-x: auto; margin: 1em 0; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 85%; line-height: 1.45; border: 1px solid #eaeaea; }
+    .bot-message pre code { background-color: transparent; padding: 0; margin: 0; border-radius: 0; border: none; color: inherit; }
+    .bot-message blockquote { border-left: 3px solid var(--blockquote-border); padding-left: 1em; color: var(--blockquote-color); margin: 1em 0; font-style: italic; }
+    .bot-message blockquote p:last-child { margin-bottom: 0; }
+    .bot-message table { border-collapse: collapse; width: 100%; margin: 1em 0; border: 1px solid var(--table-border); }
+    .bot-message th, .bot-message td { border: 1px solid var(--table-border); padding: 8px; text-align: left; }
+    .bot-message th { background-color: var(--table-header-bg); font-weight: bold; }
+    .bot-message hr { border: none; border-top: 1px solid var(--hr-color); margin: 1.5em 0; }
+
+    /* Responsive design adjustments */
+    @media (max-width: 600px) {
+      .message-container { max-width: 90%; } #chat-header { padding: 12px; font-size: 1.1rem; } #chat-input-area { padding: 8px; }
+      #user-input { padding: 10px 12px; min-height: 40px; } #send-button { width: 40px; height: 40px; }
+       .copy-button { right: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+     <div id="security-warning" style="display: none;"> <!-- Hide initially -->
+          🚨 <strong>INSECURE API KEY!</strong> This demo exposes the key in the code. Use a backend for production. 🚨
+      </div>
+    <div id="chat-header">Daisy Medic Chatbot</div>
+    <div id="chat-messages">
+      <!-- Initial Greeting (Static HTML) -->
+      <div class="message-container bot-container">
+        <div class="message bot-message">
+          Hello! I'm Daisy, your AI Medical Scribe. Please provide your clinical dictation or encounter details.
+        </div>
+        <div class="message-time" data-timestamp="${new Date().toISOString()}">Just now</div>
+      </div>
+      <!-- Chat messages will be appended here -->
+    </div>
+    <div id="chat-input-area">
+      <textarea id="user-input" placeholder="Enter dictation here..." rows="1"></textarea>
+      <button id="send-button" title="Send">
+        <!-- Send Icon SVG -->
+        <svg id="send-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="toast">Message copied to clipboard</div>
+
+  <script>
+    // --- JavaScript ---
+
+    // DOM Elements
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const toast = document.getElementById('toast');
+    const securityWarning = document.getElementById('security-warning');
+
+    const defaultSendIconHTML = `<svg id="send-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z"/></svg>`;
+
+    // --- INSECURE API Configuration ---
+    // Replace with your actual API key. This key is exposed client-side.
+    const GEMINI_API_KEY = "AIzaSyASwJckWWwHkt8wakwdfgsIisHxDJVbeHA"; // <<< --- PASTE YOUR KEY HERE
+    const MODEL_ID = "gemini-1.5-pro-latest"; // Using user's requested experimental model
+    const GENERATE_CONTENT_API = "streamGenerateContent";
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:${GENERATE_CONTENT_API}?key=${GEMINI_API_KEY}&alt=sse`;
+
+    // --- Daisy System Instruction (Copied from your prompt) ---
+    const DAISY_SYSTEM_INSTRUCTION = `You are Daisy. You are the premier AI Medical Transcriber and EMR Scribe Generator, meticulously developed by Aitek PH Software under the guidance of Master Emilio. Your expertise lies in transforming complex clinical dictations or prompts into structured, EMR-ready documentation, intelligently routed across multiple medical departments.
+
+Core Role & Directives:
+
+1.  **Single Prompt Processing:** You will receive one single, comprehensive prompt (dictation, clinical summary, or encounter notes) containing potentially multiple patient concerns, diagnoses, and plans.
+2.  **Intelligent Parsing & Routing:** Your primary function is to analyze the entire input, identify all distinct medical issues, diagnoses, or reasons for consultation, and generate a separate, accurate SOAP note for each one.
+3.  **Multi-Department Output:** Route each generated SOAP note to the most relevant medical department from the supported list. The final output must include all generated SOAP notes, clearly sectioned by department using Markdown H3 (###) for department names.
+4.  **Automated Insurance Integration:** Automatically detect mentions or implications of insurance, billing, pre-authorization requirements, or specific procedures/diagnoses needing coding. For relevant SOAP notes, include a dedicated "**Insurance/Billing:**" section (using Markdown bold) containing appropriate ICD-10 codes, CPT codes (if applicable), pre-authorization status/needs, and any pertinent billing notes as a bulleted list.
+5.  **Comprehensive Coverage:** Ensure every significant clinical point, concern, or plan mentioned in the user's prompt is addressed within the appropriate departmental SOAP note(s).
+6.  **EMR-Ready Formatting:** Generate output in clean, professional, hospital-style format using Markdown. Use bolding for SOAP section headers (S:, O:, A:, P:).
+7.  **Patient Name Handling:** Extract the patient's name if mentioned and use it ONLY in the final "End of Report for: [Patient Name]" line. Do not include the patient name within the SOAP notes themselves unless specifically dictated as part of the subjective/objective findings.
+
+Supported Departments for Routing:
+
+*   Internal Medicine
+*   Pediatrics
+*   OB-Gyne
+*   Surgery
+*   Emergency Medicine
+*   ENT (Otolaryngology)
+*   Pulmonology
+*   Orthopedics
+*   Cardiology
+*   Psychiatry
+*   Dermatology
+*   Neurology
+*   Insurance Coordination (For summary/tracking)
+
+Mandatory Output Structure:
+
+For each relevant department identified from the prompt:
+
+### **[DEPARTMENT NAME]**
+
+**SOAP Note – [Department Specialty]**
+
+**S:** [Subjective findings relevant to this department's scope]
+**O:** [Objective findings relevant to this department's scope: Vitals, Exam, Labs, Imaging]
+**A:** [Assessment/Diagnosis relevant to this department's scope]
+**P:** [Plan relevant to this department's scope: Treatments, Referrals, Follow-up, Patient Education]
+
+**Insurance/Billing:** [Include ONLY if relevant based on directive 4]
+- ICD-10: [Code(s)]
+- CPT: [Code(s), if applicable]
+- Insurance: [Carrier Name] – [Status]
+- Notes: [Billing/insurance notes]
+
+
+After all departmental SOAP notes, include a final summary section:
+
+### **INSURANCE COORDINATION**
+
+**Summary:**
+- [Brief summary line for each issue requiring insurance action]
+- [Include any overall claim tracking IDs if provided]
+
+Finally, conclude EVERY response with:
+
+**End of Report for: [Patient Name]**
+
+Generated by **Daisy – EMR Multi-Department Scribe System**
+Developed by *Aitek PH Software*`;
+
+    // --- Chat history ---
+    let chatHistory = [];
+    const MAX_HISTORY_LENGTH = 6; // Keep fewer turns for potentially long medical notes
+
+    // --- Utility Functions ---
+    function showToast(message) { toast.textContent = message; toast.className = "show"; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000); }
+    function formatTime(isoTimestamp) { if (!isoTimestamp) return 'Time unavailable'; try { const date = new Date(isoTimestamp); if (isNaN(date.getTime())) return 'Invalid time'; const now = new Date(); const diffSeconds = Math.round((now - date) / 1000); const diffMinutes = Math.round(diffSeconds / 60); if (diffSeconds < 5) return 'Just now'; if (diffMinutes < 60) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); if (date.getDate() === now.getDate()) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch (e) { console.error("Error formatting time:", e); return 'Time error'; } }
+    function autoGrow() { userInput.style.height = 'auto'; userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px'; }
+    function scrollToBottom() { setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 50); }
+    function toggleLoading(isLoading) {
+        if (GEMINI_API_KEY === "AIzaSyASwJckWWwHkt8wakwdfgsIisHxDJVbeHA") { // Check if key is placeholder
+             processButton.disabled = true; // Keep disabled if key missing
+             return;
+        }
+        sendButton.disabled = isLoading;
+        sendButton.innerHTML = isLoading ? '<div class="spinner"></div>' : defaultSendIconHTML;
+    }
+    function escapeHtml(unsafe) { return unsafe.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """).replace(/'/g, "'"); }
+
+     // --- Markdown Parser (Simplified focus on SOAP structure) ---
+    function parseMarkdown(text) {
+        if (!text) return '';
+
+        let html = text;
+
+        // 1. Protect code blocks first (less likely in SOAP, but for safety)
+        const codeBlocks = [];
+        html = html.replace(/```([\s\S]*?)```/gs, (match, code) => {
+            const id = codeBlocks.length;
+            codeBlocks.push(`<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+            return `__CODE_BLOCK_${id}__`;
+        });
+
+         // 2. Protect inline code
+        const inlineCodes = [];
+         html = html.replace(/`([^`]+)`/g, (match, code) => {
+             const id = inlineCodes.length;
+             inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
+             return `__INLINE_CODE_${id}__`;
+         });
+
+        // 3. Basic HTML escaping for the rest
+        html = escapeHtml(html);
+
+        // 4. Headers (### Department) - Make sure it handles potential bolding inside
+        html = html.replace(/^###\s*\*\*?(.*?)\*\*?\s*$/gm, '<h3><strong>$1</strong></h3>');
+
+        // 5. Bold (**S:**, **O:**, etc. and general bold)
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // 6. Italic (*text*) - Less likely needed, keep simple
+        html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+        // 7. Lists (- item)
+         html = html.replace(/^\s*-\s+(.*)/gm, '<li>$1</li>');
+         html = html.replace(/(<li>.*<\/li>\s*)+/g, (match) => `<ul>${match.trim()}</ul>`);
+         html = html.replace(/<\/ul>\s*<ul>/g, ''); // Consolidate adjacent lists
+
+        // 8. Paragraphs and Line Breaks (Crucial for SOAP notes)
+        // Treat each line as a potential paragraph or part of one unless it's a block element
+         html = html.split('\n').map(line => {
+             const trimmedLine = line.trim();
+             if (!trimmedLine) return ''; // Collapse empty lines
+             // Don't wrap lines that are already block elements or list items
+             if (/^<(h[1-6]|ul|ol|li|blockquote|hr|pre)/.test(trimmedLine)) {
+                 return line;
+             }
+              // Special handling for SOAP lines like S:, O:, A:, P: - ensure they remain distinct if desired
+              if (/^<strong>[SOAP]:<\/strong>/.test(trimmedLine)) {
+                  // Maybe add a class or just keep as paragraph
+                  return `<p class="soap-line">${line}</p>`;
+              }
+             return `<p>${line}</p>`; // Wrap other lines
+         }).join(''); // Join lines back
+
+         // Cleanup: Remove empty paragraphs that might have been created
+         html = html.replace(/<p>\s*<\/p>/g, '');
+
+        // Restore codes
+        html = html.replace(/__INLINE_CODE_(\d+)__/g, (match, id) => inlineCodes[parseInt(id)] || '');
+        html = html.replace(/__CODE_BLOCK_(\d+)__/g, (match, id) => codeBlocks[parseInt(id)] || '');
+
+        return html;
+    }
+
+    // --- Display Message Function ---
+    function displayMessage(text, sender, isoTimestamp = new Date().toISOString()) {
+      const messageContainer = document.createElement('div');
+      messageContainer.classList.add('message-container', `${sender}-container`);
+
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', `${sender}-message`);
+      messageDiv.dataset.rawText = text; // Store raw text for copy
+
+      if (sender === 'bot') {
+        messageDiv.innerHTML = parseMarkdown(text); // Render Markdown
+
+        const copyButton = document.createElement('button');
+        copyButton.classList.add('copy-button');
+        copyButton.innerHTML = '⎘'; copyButton.title = 'Copy text';
+        copyButton.onclick = () => {
+          navigator.clipboard.writeText(messageDiv.dataset.rawText).then(() => { showToast('Report copied'); })
+            .catch(err => { console.error('Could not copy: ', err); showToast('Copy failed'); });
+        };
+        messageContainer.appendChild(copyButton);
+
+      } else {
+        // Display user text safely
+         const p = document.createElement('p');
+         p.textContent = text;
+         messageDiv.appendChild(p);
+      }
+
+      messageContainer.appendChild(messageDiv);
+
+      const timeDiv = document.createElement('div');
+      timeDiv.classList.add('message-time');
+      timeDiv.dataset.timestamp = isoTimestamp;
+      timeDiv.textContent = formatTime(isoTimestamp);
+      messageContainer.appendChild(timeDiv);
+
+      chatMessages.appendChild(messageContainer);
+      scrollToBottom();
+      return messageDiv; // Return the message div for streaming updates
+    }
+
+    // --- Typing Indicator ---
+    function createTypingIndicator() { removeTypingIndicator(); const c = document.createElement('div'); c.className = 'message-container bot-container'; c.id = 'typing-indicator-container'; const i = document.createElement('div'); i.className = 'typing-indicator'; for (let j = 0; j < 3; j++) { const d = document.createElement('div'); d.className = 'typing-dot'; i.appendChild(d); } c.appendChild(i); chatMessages.appendChild(c); scrollToBottom(); return c; }
+    function removeTypingIndicator() { const i = document.getElementById('typing-indicator-container'); if (i) i.remove(); }
+
+    // --- API Error Handling ---
+    function handleApiError(error, botMessageDiv) {
+      console.error("API Error:", error);
+      removeTypingIndicator();
+
+      const errorMessageContainer = botMessageDiv.parentNode;
+      const errorMessageDiv = botMessageDiv;
+      errorMessageDiv.innerHTML = ''; // Clear previous content
+      // Add specific error class for styling, remove general bot class
+      errorMessageDiv.classList.remove('bot-message');
+      errorMessageDiv.classList.add('error-message');
+
+      let displayError = `An error occurred. Please try again. Check console for details.`;
+       if(error?.message) {
+             // Try to extract meaningful part of the error
+             const commonErrors = {
+                 "API key not valid": "Invalid API Key. Please check the key in the script.",
+                 "permission denied": "Permission Denied. The API key might lack permissions for this model or project.",
+                 "Invalid JSON payload": "Internal error formatting the request.",
+                 "Content filter": "The request or response was blocked by content filters.",
+                 "Unsupported model": "The selected model ID is not available or supported.",
+                 "quota exceeded": "API Quota Exceeded. Please check your usage limits.",
+                 "CORS": "Browser security (CORS) or network issue blocked the request." // Heuristic
+             };
+             let matched = false;
+             for (const key in commonErrors) {
+                 if (error.message.toLowerCase().includes(key.toLowerCase())) {
+                     displayError = `Error: ${commonErrors[key]}`;
+                     matched = true;
+                     break;
+                 }
+             }
+             if (!matched) {
+                 // Show generic API error if specific pattern not found
+                 const apiMatch = error.message.match(/API Error \(\d+\): (.*)/);
+                 displayError = `Error: ${apiMatch ? apiMatch[1] : error.message}`;
+             }
+       } else if (typeof error === 'string') { displayError = `Error: ${error}`; }
+
+      errorMessageDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg> ${escapeHtml(displayError)}`;
+
+      const retryButton = document.createElement('button');
+      retryButton.textContent = 'Retry Last Message';
+      retryButton.className = 'retry-button';
+      retryButton.onclick = () => {
+        const lastUserMessageEntry = chatHistory.filter(msg => msg.role === 'user').pop();
+        if (lastUserMessageEntry?.content) {
+          errorMessageContainer.remove();
+          // Clean up history: remove last user msg and potential failed bot msg placeholder
+          chatHistory = chatHistory.filter(msg => msg.timestamp !== lastUserMessageEntry.timestamp);
+          if(chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'assistant' && !chatHistory[chatHistory.length - 1].content) { chatHistory.pop(); }
+          sendMessageWithText(lastUserMessageEntry.content);
+        } else { showToast("Could not find last message to retry."); }
+      };
+      errorMessageDiv.appendChild(retryButton);
+      scrollToBottom();
+    }
+
+    // --- Send Message Logic (Direct API Call - INSECURE) ---
+    async function sendMessageWithText(inputText) {
+      const userTimestamp = new Date().toISOString();
+      displayMessage(inputText, 'user', userTimestamp);
+      chatHistory.push({ role: 'user', content: inputText, timestamp: userTimestamp });
+
+      // Immediate validation for placeholder key
+      if (GEMINI_API_KEY === "AIzaSyASwJckWWwHkt8wakwdfgsIisHxDJVbeHA") {
+            const botTimestamp = new Date().toISOString();
+            const botMsgDiv = displayMessage("", "bot", botTimestamp);
+            handleApiError("API Key is missing or invalid. Please replace the placeholder in the script.", botMsgDiv);
+            return; // Stop processing
+      }
+
+
+      toggleLoading(true);
+      createTypingIndicator();
+
+      // Construct API Request Body for Google
+      const requestBody = {
+        contents: [], // Will include history + current
+        systemInstruction: { parts: [{ text: DAISY_SYSTEM_INSTRUCTION }] },
+        generationConfig: { responseMimeType: "text/plain", temperature: 0.3, topP: 0.95 } // Slightly deterministic
+      };
+
+      // Build context, map roles 'assistant' -> 'model'
+      const historyForApi = chatHistory
+        .slice(-MAX_HISTORY_LENGTH * 2) // Limit context
+        .map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }));
+      requestBody.contents = historyForApi;
+
+      let accumulatedText = "";
+      let botMessageDiv = null;
+      const botTimestamp = new Date().toISOString();
+
+      try {
+        // --- DIRECT, INSECURE API CALL ---
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        // --- END INSECURE CALL ---
+
+        removeTypingIndicator();
+
+        if (!response.ok) {
+          let errorData = { message: `HTTP error ${response.status}` };
+          try { errorData = await response.json(); console.error("API Error Body:", errorData); } catch (e) { /* ignore */ }
+          throw new Error(`API Error (${response.status}): ${errorData.error?.message || errorData.message || response.statusText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        botMessageDiv = displayMessage('', 'bot', botTimestamp); // Create bubble
+        botMessageDiv.dataset.rawText = ""; // Init raw text
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonData = JSON.parse(line.substring(5).trim());
+                if (jsonData.error) throw new Error(`Stream Error: ${jsonData.error.message}`);
+
+                const textPart = jsonData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (textPart) {
+                  accumulatedText += textPart;
+                  botMessageDiv.innerHTML = parseMarkdown(accumulatedText);
+                  botMessageDiv.dataset.rawText = accumulatedText;
+                  scrollToBottom();
+                }
+                const finishReason = jsonData?.candidates?.[0]?.finishReason;
+                 if (finishReason && finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
+                     console.warn("Stream ended unexpectedly:", finishReason);
+                     // Maybe add a note to the output?
+                     // accumulatedText += `\n\n*[Note: Generation ended due to ${finishReason}]*`;
+                 }
+
+              } catch (e) {
+                console.warn("Error processing stream chunk:", line, e);
+                 accumulatedText += `\n\n**[Error processing part of response]**`;
+                 botMessageDiv.innerHTML = parseMarkdown(accumulatedText);
+                 botMessageDiv.dataset.rawText = accumulatedText;
+                 // Don't necessarily stop the stream for one bad chunk
+              }
+            }
+          }
+          if (reader.closed) break;
+        }
+
+        if (botMessageDiv) { // Final update
+           botMessageDiv.innerHTML = parseMarkdown(accumulatedText);
+           botMessageDiv.dataset.rawText = accumulatedText;
+        }
+
+        if (accumulatedText.trim()) { // Add successful response
+          chatHistory.push({ role: 'assistant', content: accumulatedText, timestamp: botTimestamp });
+        }
+
+        // Trim & Save history
+        if (chatHistory.length > MAX_HISTORY_LENGTH * 2 + 5) { chatHistory = chatHistory.slice(-(MAX_HISTORY_LENGTH * 2)); }
+        saveChatHistory();
+
+      } catch (error) {
+        console.error("Caught Error during API call/stream:", error);
+        removeTypingIndicator();
+        if (!botMessageDiv) botMessageDiv = displayMessage('', 'bot', botTimestamp);
+        handleApiError(error, botMessageDiv); // Show error in bubble
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // --- Send Message Trigger ---
+    function sendMessage() {
+      const inputText = userInput.value.trim();
+      if (!inputText || sendButton.disabled) return;
+      userInput.value = ''; autoGrow();
+      sendMessageWithText(inputText);
+    }
+
+    // --- History Management ---
+    function saveChatHistory() { try { localStorage.setItem('daisyChatHistory_v2', JSON.stringify(chatHistory)); } catch (e) { console.warn("Could not save chat history:", e); } }
+    function loadChatHistory() {
+        const savedHistory = localStorage.getItem('daisyChatHistory_v2'); // Use a unique key
+        if (savedHistory) {
+            try {
+                const parsedHistory = JSON.parse(savedHistory);
+                if (Array.isArray(parsedHistory) && parsedHistory.every(item => item && typeof item.role === 'string' && typeof item.content === 'string' && typeof item.timestamp === 'string')) {
+                    chatHistory = parsedHistory;
+                    chatMessages.innerHTML = ''; // Clear default greeting
+                    chatHistory.forEach(msg => displayMessage(msg.content, msg.role, msg.timestamp));
+                    scrollToBottom();
+                } else { localStorage.removeItem('daisyChatHistory_v2'); /* Invalid format */ }
+            } catch (e) { console.error('Error loading history:', e); localStorage.removeItem('daisyChatHistory_v2'); /* Corrupted */ }
+        }
+        // Ensure greeting is present if chat is empty AFTER attempting load
+        if (chatMessages.children.length === 0) { displayInitialGreeting(); }
+    }
+     function displayInitialGreeting() {
+         if (chatMessages.children.length === 0) { // Only if empty
+             displayMessage("Hello! I'm Daisy, your AI Medical Scribe. Please provide your clinical dictation or encounter details.", 'bot');
+         }
+     }
+
+    // --- Initialization ---
+    function initializeChat() {
+      console.log("Initializing Daisy Chat (Insecure Standalone)...");
+       if (GEMINI_API_KEY === "AIzaSyASwJckWWwHkt8wakwdfgsIisHxDJVbeHA") {
+           securityWarning.style.display = 'block';
+           securityWarning.innerHTML = '🚨 <strong>API KEY MISSING!</strong> Replace placeholder key in script. Demo disabled. 🚨';
+           sendButton.disabled = true; // Disable send if key missing
+           userInput.disabled = true;
+       } else {
+            securityWarning.style.display = 'block'; // Show the warning if key IS present
+       }
+
+      userInput.addEventListener('input', autoGrow);
+      userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+      sendButton.addEventListener('click', sendMessage);
+
+      loadChatHistory(); // Load and display history OR initial greeting
+
+      autoGrow();
+      userInput.focus();
+
+      // Periodic timestamp updates
+      setInterval(() => {
+          document.querySelectorAll('.message-time').forEach(t => { if(t.dataset.timestamp) t.textContent = formatTime(t.dataset.timestamp); });
+      }, 60000);
+    }
+
+    // --- Start ---
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initializeChat); }
+    else { initializeChat(); }
+
+  </script>
+</body>
+</html>
